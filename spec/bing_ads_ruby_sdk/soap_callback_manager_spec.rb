@@ -20,6 +20,43 @@ RSpec.describe BingAdsRubySdk::SoapCallbackManager do
     end
   end
 
+  describe "#register_callbacks" do
+    subject(:manager) { described_class }
+
+    let(:booleans) { [true, false] }
+
+    def random_boolean
+      booleans.sample
+    end
+
+    def build_callbacks_summary(registered_callbacks)
+      registered_callbacks.map(&:callbacks).map do |callbacks|
+        parts = callbacks.map do |name, lambdas|
+          [name, lambdas.map(&:object_id)]
+        end
+
+        Hash[parts]
+      end
+    end
+
+    it "is thread-safe" do
+      threads = Array.new(8) do
+        Thread.new do
+          manager.register_callbacks({}) { sleep 0.01 if random_boolean }
+
+          build_callbacks_summary(
+            Thread.current[:registered_callbacks]
+          )
+        end
+      end
+
+      threads.map(&:value).each do |callbacks|
+        expect(callbacks.size).to eq(3)
+        expect(callbacks[1..-1]).not_to include(be_empty)
+      end
+    end
+  end
+
   describe '.before_build' do
     def non_null_element(name)
       double(LolSoap::WSDL::Element, name: name, type: "#{name}Type")

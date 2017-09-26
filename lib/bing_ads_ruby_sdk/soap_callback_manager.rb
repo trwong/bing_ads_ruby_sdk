@@ -17,6 +17,8 @@ module BingAdsRubySdk
         self.request_callback = LolSoap::Callbacks.new
         self.response_callback = LolSoap::Callbacks.new
 
+        yield if block_given?
+
         AbstractType.abstract_types = abstract_types
         AbstractType.register
 
