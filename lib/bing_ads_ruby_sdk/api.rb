@@ -1,18 +1,20 @@
-require 'yaml'
-require 'logger'
-require 'fileutils'
-require 'lolsoap'
-require 'bing_ads_ruby_sdk/soap_callback_manager'
-require 'bing_ads_ruby_sdk/service'
-require 'bing_ads_ruby_sdk/header'
-require 'bing_ads_ruby_sdk/oauth2/authorization_code'
-require 'bing_ads_ruby_sdk/errors/application_fault'
-require 'bing_ads_ruby_sdk/errors/error_handler'
+# frozen_string_literal: true
+
+require "lolsoap"
+require "bing_ads_ruby_sdk/soap_callback_manager"
+require "bing_ads_ruby_sdk/service"
+require "bing_ads_ruby_sdk/header"
+require "bing_ads_ruby_sdk/configuration"
+require "bing_ads_ruby_sdk/oauth2/authorization_code"
+require "bing_ads_ruby_sdk/errors/application_fault"
+require "bing_ads_ruby_sdk/errors/server_error"
+require "bing_ads_ruby_sdk/errors/error_handler"
 
 module BingAdsRubySdk
-  class Api
+  SoapCallbackManager.register_callbacks
 
-    attr_reader :header
+  class Api
+    attr_reader :header, :config
 
     # @param config [Hash] shared soap header customer parameters
     # @option config [Symbol] :id customer id
@@ -32,23 +34,21 @@ module BingAdsRubySdk
                    environment: :production,
                    oauth_store: OAuth2::FsStore,
                    credentials: {})
-      @api_config = env_for(version)
-      SoapCallbackManager.register_callbacks(@api_config['ABSTRACT'])
+      @config = Configuration.new(version: version, environment: environment)
       @token  = token(credentials, oauth_store)
       @header = Header.new(credentials, @token)
-
       # Get the URLs for the WSDL that defines the services on the API
       # Create services accessors and objects from each named wsdl
-      build_services(environment)
+      build_services
     end
 
     private
 
-    def build_services(environment)
-      @api_config[environment.to_s.upcase].each do |serv, url|
+    def build_services
+      config.services.each_key do |serv|
         BingAdsRubySdk.logger.debug("Defining service #{serv} accessors")
         self.class.send(:attr_reader, serv)
-        client = load_or_new(serv, url)
+        client = config.cached(serv)
         instance_variable_set(
           "@#{serv}",
           Service.new(client, header)
@@ -60,33 +60,10 @@ module BingAdsRubySdk
       OAuth2::AuthorizationCode.new(
         {
           developer_token: credentials[:developer_token],
-          client_id:       credentials[:client_id]
+          client_id:       credentials[:client_id],
         },
-        store: store
+        { store: store }
       )
     end
-
-    def env_for(version)
-      @cache_path = File.join(__dir__, '.cache', version.to_s)
-      FileUtils.mkdir_p @cache_path
-      YAML.load_file(
-        File.join(__dir__, 'config', "#{version}.yml")
-      )
-    end
-
-    def load_or_new(serv, url)
-      file = File.join(@cache_path, serv)
-      if File.file?(file)
-        BingAdsRubySdk.logger.debug("Client #{serv} from cache")
-        Marshal.load(IO.read(file))
-      else
-        BingAdsRubySdk.logger.info("Client #{serv} from URL")
-        LolSoap::Client.new(File.read(open(url))).tap do |client|
-          # TODO : as atomic_write does to avoid broken cache
-          File.open(file, 'w+') { |f| Marshal.dump(client, f) }
-        end
-      end
-    end
-
   end
 end

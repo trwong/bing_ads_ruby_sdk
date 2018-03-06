@@ -4,37 +4,30 @@ require 'bing_ads_ruby_sdk/callbacks/abstract_type'
 
 module BingAdsRubySdk
   # Handles of LolSoap callbacks
+  # FIXME : that should be splitted in smaller classes in a callbacks folder
   class SoapCallbackManager
     class << self
-      attr_accessor :abstract_callback, :request_callback, :response_callback
-
-      def register_callbacks(abstract_types)
-        # A bit hacky, but let's think about this
-        Thread.current[:registered_callbacks] = []
-
-        # Instantiate the callbacks in the order they need to be triggered
-        self.abstract_callback = LolSoap::Callbacks.new
-        self.request_callback = LolSoap::Callbacks.new
-        self.response_callback = LolSoap::Callbacks.new
-
-        yield if block_given?
-
-        AbstractType.abstract_types = abstract_types
-        AbstractType.register
-
+      def register_callbacks
         # Modify the request data before it is sent via the SOAP client
-        request_callback
-          .for('hash_params.before_build') <<
-          lambda do |args, _node, type|
-            before_build(args, type)
-          end
-
         # Modify the response data whilst it is being processed by the SOAP client
-        response_callback
-          .for('hash_builder.after_children_hash') <<
-          lambda do |hash, _node, _type|
-            after_children_hash(hash)
-          end
+        LolSoap::Callbacks.register(
+          {
+            "hash_params.before_build" => [request_callback_lambda],
+            "hash_builder.after_children_hash" => [response_callback_lambda],
+          }
+        )
+      end
+
+      def request_callback_lambda
+        lambda do |args, _node, type|
+          before_build(args, type)
+        end
+      end
+
+      def response_callback_lambda
+        lambda do |hash, _node, _type|
+          after_children_hash(hash)
+        end
       end
 
       def before_build(args, type)
@@ -70,13 +63,28 @@ module BingAdsRubySdk
 
         argument_hashes.each do |hash|
           found_at = matcher.index(hash[:name].tr('_', '').downcase)
+          # FIXME : missing element would be more efficient and cleaner by populating an error hash instead of raising
+          # More efficient cause raising will give you a hint only on first missing element
+          # Cleaner cause you'll see it untangles the conditions
+          # Be careful, LolSoap will raise if you nest anything in a missing element
+          # That would go with moving turning faults and errors hash into exceptions
           if found_at
-            hash[:name] = el_keys[found_at]
+            name = el_keys[found_at]
+            # Abstract types
+            if type.elements[name].respond_to?(:name) && name != type.elements[name].name
+              hash[:name]     = type.elements[name].name
+              hash[:sub_type] = type.elements[name].type
+              hash[:args] << { 'xsi:type' => type.elements[name].type.prefix_and_name }
+            else
+              hash[:name] = name
+            end
+
           elsif type.prefix_and_name == 'soap:Header'
             BingAdsRubySdk.logger.info(
               "#{hash[:name]} not found in #{type.prefix_and_name}."\
               "Possible fields #{el_keys.join(', ')}"
             )
+
           else
             raise ElementMismatch, "#{hash[:name]} not found in #{type.prefix_and_name}."\
                                    "Possible fields #{el_keys.join(', ')}"

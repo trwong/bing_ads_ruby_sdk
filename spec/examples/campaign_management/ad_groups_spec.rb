@@ -41,7 +41,7 @@ RSpec.describe 'CampaignManagement service' do
               {
                 ad_distribution: "Search",
                 ad_rotation: nil,
-                bidding_scheme: { type: "InheritFromParent" },
+                bidding_scheme: a_collection_including(type: "InheritFromParent"),
                 content_match_bid: { amount: "0.05" },
                 forward_compatibility_map: "",
                 id: a_kind_of(String),

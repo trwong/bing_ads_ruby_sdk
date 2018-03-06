@@ -16,9 +16,7 @@ RSpec.describe 'CampaignManagement service' do
               bid: {
                 amount: "0.05",
               },
-              bidding_scheme: {
-                type: "InheritFromParent",
-              },
+              bidding_scheme: a_collection_including(type: "InheritFromParent"),
               destination_url: "",
               editorial_status: "Active",
               final_app_urls: nil,
