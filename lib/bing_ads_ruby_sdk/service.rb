@@ -4,10 +4,15 @@ require "lolsoap"
 require "bing_ads_ruby_sdk/utils"
 require "net/http"
 require "excon"
+require "pry"
+require "nokogiri"
+require "forwardable"
 
 module BingAdsRubySdk
   # Manages communication with the a defined SOAP service on the API
   class Service
+    extend Forwardable
+
     @http_connections = {}
     HTTP_OPEN_TIMEOUT = 10
     HTTP_READ_TIMEOUT = 20
@@ -100,9 +105,51 @@ module BingAdsRubySdk
 
       BingAdsRubySdk.logger.debug(req.content)
 
+      validate body(req)
+
       raw_response = http_request(req)
       BingAdsRubySdk.logger.debug(raw_response.body)
       parse_response(req, raw_response)
+    end
+
+    WHITE_LIST = %w(SignupCustomerRequest)
+
+    # Validates request's body. Halts execution if any error is found and write warnings into logs
+    def validate(body)
+
+      return if WHITE_LIST.include?(body.name)
+
+      errors, warnings = validator.validate(Nokogiri::XML(body.to_xml)).partition{|e| e.message.include?("ERROR:")}
+
+      BingAdsRubySdk.logger.debug("[XSD Validations] Warnings: #{warnings.inspect}") if warnings.any?
+      raise ArgumentError, "[XSD Validations] Errors: #{errors.inspect}" if errors.any?
+    end
+
+    # Extracts the Body part of the SOAP:ENVELOPE XML request. Set xmlns:ns{n} attributes needed by validator
+    def body(req)
+      Nokogiri::XML(req.content).root.children
+        .find { |e| e.name == "Body" }.children
+        .find { |e| e.name != "text" }
+        .tap do |body|
+        body.set_attribute("xmlns:ns0", "https://bingads.microsoft.com/CampaignManagement/v11")
+      end
+    end
+
+    def_delegator self, :validator
+
+    class << self
+      def validator
+        @validator ||= Nokogiri::XML::Schema.new(schema_file)
+      end
+
+      # Navigates to the XSD files location from the current script file location
+      def schema_file
+        path_parts = __FILE__.split("/")
+
+        File.open(
+          (path_parts[0...(path_parts.size - 3)] + ["vendor", "xsd", "campaignmanagementserviceWsdl_1.xsd"]).join("/")
+        )
+      end
     end
   end
 end
