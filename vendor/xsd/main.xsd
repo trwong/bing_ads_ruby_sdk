@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ns0="http://schemas.datacontract.org/2004/07/Microsoft.AdCenter.Advertiser.CampaignManagement.Api.DataContracts.V11">
+  <xs:import schemaLocation="campaignmanagementserviceWsdl_0.xsd" namespace="http://schemas.microsoft.com/2003/10/Serialization/" />
+  <xs:import schemaLocation="campaignmanagementserviceWsdl_1.xsd" namespace="https://bingads.microsoft.com/CampaignManagement/v11" />
+  <xs:import schemaLocation="campaignmanagementserviceWsdl_2.xsd" namespace="http://schemas.datacontract.org/2004/07/Microsoft.AdCenter.Advertiser.CampaignManagement.Api.DataContracts.V11" />
+  <xs:import schemaLocation="campaignmanagementserviceWsdl_3.xsd" namespace="http://schemas.microsoft.com/2003/10/Serialization/Arrays" />
+  <xs:import schemaLocation="campaignmanagementserviceWsdl_4.xsd" namespace="http://schemas.datacontract.org/2004/07/System.Collections.Generic" />
+  <xs:import schemaLocation="campaignmanagementserviceWsdl_5.xsd" namespace="http://schemas.datacontract.org/2004/07/System" />
+  <xs:import schemaLocation="campaignmanagementserviceWsdl_6.xsd" namespace="https://adapi.microsoft.com" />
+</xs:schema>
