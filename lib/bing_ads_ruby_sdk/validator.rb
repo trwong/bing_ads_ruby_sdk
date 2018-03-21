@@ -61,10 +61,10 @@ module BingAdsRubySdk
 
       # Navigates to the XSD files location from the current script file location
       def schema_file
-        path_parts = __FILE__.split("/")
+        path_parts = __FILE__.split(File::Separator)
 
         File.open(
-          (path_parts[0...(path_parts.size - 3)] + ["vendor", "xsd", "main.xsd"]).join("/")
+          (path_parts[0...(path_parts.size - 3)] + ["vendor", "xsd", "main.xsd"]).join(File::Separator)
         )
       end
     end
