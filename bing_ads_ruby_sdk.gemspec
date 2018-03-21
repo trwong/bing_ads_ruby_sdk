@@ -33,6 +33,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'signet'
   spec.add_dependency 'lolsoap'
   spec.add_dependency 'excon'
+  spec.add_dependency 'nokogiri'
 
   spec.add_development_dependency 'bundler'
   spec.add_development_dependency 'rake'
