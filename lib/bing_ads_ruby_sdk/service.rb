@@ -105,6 +105,7 @@ module BingAdsRubySdk
 
       BingAdsRubySdk.logger.debug(req.content)
 
+
       validate body(req)
 
       raw_response = http_request(req)
@@ -116,7 +117,6 @@ module BingAdsRubySdk
 
     # Validates request's body. Halts execution if any error is found and write warnings into logs
     def validate(body)
-
       return if WHITE_LIST.include?(body.name)
 
       errors, warnings = validator.validate(Nokogiri::XML(body.to_xml)).partition{|e| e.message.include?("ERROR:")}
@@ -125,19 +125,25 @@ module BingAdsRubySdk
       raise ArgumentError, "[XSD Validations] Errors: #{errors.inspect}" if errors.any?
     end
 
-    # Extracts the Body part of the SOAP:ENVELOPE XML request. Set xmlns:ns{n} attributes needed by validator
+    # Extracts the Body part of the SOAP:ENVELOPE XML request. Move namespace attributes from the envelope to the
+    # extracted XML part
     def body(req)
-      Nokogiri::XML(req.content).root.children
+      root = Nokogiri::XML(req.content).root
+
+      root.children
         .find { |e| e.name == "Body" }.children
         .find { |e| e.name != "text" }
         .tap do |body|
-        body.set_attribute("xmlns:ns0", "https://bingads.microsoft.com/CampaignManagement/v11")
+        root.namespaces.each do |k, v|
+          body.set_attribute k, v
+        end
       end
     end
 
     def_delegator self, :validator
 
     class << self
+      # Loading schema files is time consuming. Better memoize the validator at the class Level
       def validator
         @validator ||= Nokogiri::XML::Schema.new(schema_file)
       end
@@ -147,7 +153,7 @@ module BingAdsRubySdk
         path_parts = __FILE__.split("/")
 
         File.open(
-          (path_parts[0...(path_parts.size - 3)] + ["vendor", "xsd", "campaignmanagementserviceWsdl_1.xsd"]).join("/")
+          (path_parts[0...(path_parts.size - 3)] + ["vendor", "xsd", "main.xsd"]).join("/")
         )
       end
     end
