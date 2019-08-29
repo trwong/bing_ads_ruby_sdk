@@ -33,7 +33,7 @@ module BingAdsRubySdk
 
     private
 
-    attr_reader :oauth_store, :developer_token, :client_id, :customer
+    attr_reader :oauth_store, :developer_token, :client_id, :customer, :client_secret
 
     def auth_handler
       @auth_handler ||= ::BingAdsRubySdk::OAuth2::AuthorizationHandler.new(
