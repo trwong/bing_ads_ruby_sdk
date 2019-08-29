@@ -39,7 +39,8 @@ module BingAdsRubySdk
       @auth_handler ||= ::BingAdsRubySdk::OAuth2::AuthorizationHandler.new(
         developer_token: developer_token,
         client_id: client_id,
-        store: oauth_store
+        store: oauth_store,
+        client_secret: client_secret
       )
     end
   end
