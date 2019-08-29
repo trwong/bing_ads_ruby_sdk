@@ -6,11 +6,12 @@ module BingAdsRubySdk
     # @param developer_token
     # @param client_id
     # @param store instance of a store
-    def initialize(developer_token:, client_id:, store:)
+    def initialize(developer_token:, client_id:, store:, client_secret:)
       @developer_token = developer_token
       @client_id = client_id
       @oauth_store = store
       @customer = {}
+      @client_secret = client_secret
     end
 
     # @return [Hash] Authorization and identification data that will be added to the SOAP header
@@ -19,7 +20,8 @@ module BingAdsRubySdk
         "AuthenticationToken" => auth_handler.fetch_or_refresh,
         "DeveloperToken" =>      developer_token,
         "CustomerId" =>          customer[:customer_id],
-        "CustomerAccountId" =>   customer[:account_id]
+        "CustomerAccountId" =>   customer[:account_id],
+        "ClientSecret" =>        client_secret
       }
     end
 
